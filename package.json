@@ -1,0 +1,48 @@
+{
+  "name": "live-stream",
+  "version": "0.0.1",
+  "description": "webrtc experiment",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "bash scripts/start.sh",
+    "share": "bash scripts/share.sh"
+  },
+  "keywords": [],
+  "author": "James Kyburz <james.kyburz@gmail.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "server-base-log": "7.1.23",
+    "simple-peer": "9.7.2",
+    "ws": "7.3.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "10.0.0",
+    "@commitlint/config-conventional": "10.0.0",
+    "commitizen": "4.2.0",
+    "cz-conventional-changelog": "3.2.0",
+    "husky": "4.2.5",
+    "lint-staged": "10.2.8",
+    "ngrok": "3.3.0",
+    "parcel": "1.12.4",
+    "prettier": "2.0.5",
+    "prettier-standard": "16.3.0",
+    "qrcode": "1.4.4",
+    "serve": "11.3.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "**/*.{md}": "prettier --write",
+    "**/*.{js,css,jsx}": "prettier-standard"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "private": true
+}
