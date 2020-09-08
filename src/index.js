@@ -28,11 +28,7 @@ if (window.location.pathname === '/new') {
   click.textContent = 'start streaming your camera and mic'
   click.onclick = () => {
     click.parentNode.removeChild(click)
-    window.navigator.mediaDevices
-      .getUserMedia({
-        video: true,
-        audio: true
-      })
+    getMedia()
       .then(gotMedia)
       .catch(error => log({ error }))
   }
@@ -77,6 +73,24 @@ if (window.location.pathname === '/new') {
   ws.onclose = () => {
     log({ message: 'websocket closed' })
   }
+}
+
+function getMedia () {
+  return navigator.mediaDevices.getUserMedia({
+    video: {
+      video: {
+        facingMode: 'environment'
+      },
+      audio: {
+        sampleRate: 48000,
+        channelCount: 2,
+        volume: 1.0,
+        echoCancellation: false,
+        noiseSuppression: false,
+        audioGainControl: false
+      }
+    }
+  })
 }
 
 function gotMedia (stream) {
