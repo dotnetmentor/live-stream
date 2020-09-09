@@ -33,8 +33,9 @@ if (window.location.pathname === '/new') {
       .catch(error => log({ error }))
   }
 } else {
-  const peer = new Peer({ initiator: false, trickle: false })
-  window.peer = peer
+  let captionText
+  let broadcast
+  const peer = new Peer({ initiator: false, trickle: false, encoding: 'utf-8' })
   const ws = new window.WebSocket(`${WS_URL}${window.location.pathname}`)
   peer.on('signal', data => {
     log({ message: 'ws signal', extra: { initator: false, data: { ...data } } })
@@ -44,7 +45,19 @@ if (window.location.pathname === '/new') {
   peer.on('data', data => {
     const message = JSON.parse(data)
     if (message.type === 'setCaption') {
-      caption.textContent = message.value
+      captionText = message.value
+      caption.textContent = captionText
+      if (broadcast) {
+        const broadcastCaption = () =>
+          broadcast.send(
+            JSON.stringify({ type: 'setCaption', value: captionText })
+          )
+        if (broadcast.connected) {
+          broadcastCaption()
+        } else {
+          broadcast.on('connect', broadcastCaption)
+        }
+      }
     }
   })
   ws.onopen = () => {
@@ -70,8 +83,72 @@ if (window.location.pathname === '/new') {
             .play()
             .catch(error => log({ error, extra: 'peer failed to play video' }))
           play.parentNode.removeChild(play)
-          video.style = 'display: block; width: 100vw;'
+          video.style = 'display: block'
         }
+        broadcast = new Peer({
+          initiator: true,
+          stream,
+          trickle: false,
+          sdpTransform: sdp => sdp.replace(/sendrecv/g, 'sendonly'),
+          encoding: 'utf-8'
+        })
+        let signal
+        broadcast.on('connect', () =>
+          broadcast.send(
+            JSON.stringify({ type: 'setCaption', value: captionText })
+          )
+        )
+        broadcast.on('signal', data => {
+          log({ message: 'got signal from initiator peer', extra: { ...data } })
+          signal = data
+          const ws = new window.WebSocket(`${WS_URL}/new`)
+          ws.onopen = () => {
+            log({ message: 'connected to websocket' })
+            let id
+            ws.send(JSON.stringify({ type: 'initiate' }))
+            ws.onmessage = ({ data }) => {
+              const message = JSON.parse(data)
+              const { type } = message
+              if (type === 'signal') {
+                log({ message: 'sending signal to peer', extra: message })
+                broadcast.signal(message.data)
+              } else if (type === 'shareId') {
+                id = message.id
+                log({
+                  message: 'share',
+                  extra: `${window.location.href.replace('/new', '')}/${id}`
+                })
+                ws.send(
+                  JSON.stringify({
+                    type: 'signal',
+                    initiator: true,
+                    data: signal,
+                    id
+                  })
+                )
+                const share = document.createElement('a')
+                share.href = `/${id}`
+                share.textContent = 'share link'
+                share.style = 'display: block; margin-left: 15px;'
+                qrcode
+                  .toDataURL(
+                    `${window.location.href.replace('/new', '')}/${id}`
+                  )
+                  .then(src => {
+                    const shareImage = document.body.appendChild(
+                      document.createElement('img')
+                    )
+                    shareImage.src = src
+                    shareImage.style = 'display: block;'
+                    document.body.appendChild(share)
+                  })
+              }
+            }
+            ws.onclose = () => {
+              log({ message: 'websocket closed' })
+            }
+          }
+        })
       })
     }
     ws.send(JSON.stringify({ type: 'follow' }))
@@ -101,7 +178,6 @@ function getMedia () {
 function gotMedia (stream) {
   log({ message: 'got hold of camera and mic' })
   const video = document.body.appendChild(document.createElement('video'))
-  video.style = 'width: 40vw'
 
   const noSoundStream = stream.clone()
   for (const audioTrack of noSoundStream.getAudioTracks()) {
@@ -129,7 +205,8 @@ function gotMedia (stream) {
     initiator: true,
     stream,
     trickle: false,
-    sdpTransform: sdp => sdp.replace(/sendrecv/g, 'sendonly')
+    sdpTransform: sdp => sdp.replace(/sendrecv/g, 'sendonly'),
+    encoding: 'utf-8'
   })
   let signal
   peer.on('signal', data => {
