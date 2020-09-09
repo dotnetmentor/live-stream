@@ -61,7 +61,9 @@ if (window.location.pathname === '/new') {
         play.textContent = 'play video'
         play.onclick = () => {
           log({ message: 'play video' })
-          video.play()
+          video
+            .play()
+            .catch(error => log({ error, extra: 'peer failed to play video' }))
           play.parentNode.removeChild(play)
           video.style = 'display: block'
         }
@@ -78,23 +80,27 @@ if (window.location.pathname === '/new') {
 function getMedia () {
   return navigator.mediaDevices.getUserMedia({
     video: {
-      video: {
-        facingMode: 'environment'
-      },
-      audio: {
-        sampleRate: 48000,
-        channelCount: 2,
-        volume: 1.0,
-        echoCancellation: false,
-        noiseSuppression: false,
-        audioGainControl: false
-      }
+      facingMode: 'environment'
+    },
+    audio: {
+      sampleRate: 48000,
+      channelCount: 2,
+      volume: 1.0,
+      echoCancellation: false,
+      noiseSuppression: false,
+      audioGainControl: false
     }
   })
 }
 
 function gotMedia (stream) {
   log({ message: 'got hold of camera and mic' })
+  const video =
+    document.querySelector('video') ||
+    document.body.appendChild(document.createElement('video'))
+  video.srcObject = stream
+  video.controls = true
+  video.play().catch(error => log({ error, extra: 'failed to play own video' }))
   const peer = new Peer({ initiator: true, stream, trickle: false })
   let signal
   peer.on('signal', data => {
