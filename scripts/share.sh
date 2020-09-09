@@ -30,7 +30,7 @@ if [[ -z "${web_url:-}" ]] || [[ -z "${signal_url:-}" ]]; then
 fi
 
 export WS_URL=wss://${signal_url:?}
-export DEBUG_LOG=''
+export DEBUG_LOG=true
 
 parcel build src/index.html
 serve -s ./dist -p 1234 > /dev/null 2>&1 &

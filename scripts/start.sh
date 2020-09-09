@@ -13,7 +13,7 @@ function cleanup() {
 }
 
 export WS_URL=ws://localhost:5000
-export DEBUG_LOG=''
+export DEBUG_LOG=true
 
 parcel start src/index.html &
 parcel_pid=$!

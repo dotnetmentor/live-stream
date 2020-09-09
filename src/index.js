@@ -50,14 +50,11 @@ if (window.location.pathname === '/new') {
       }
       peer.on('stream', stream => {
         log({ message: 'got video stream from peer' })
-        const video =
-          document.querySelector('video') ||
-          document.body.appendChild(document.createElement('video'))
+        const video = document.body.appendChild(document.createElement('video'))
         video.style = 'display: none'
+        video.controls = true
         video.srcObject = stream
-        const play =
-          document.querySelector('button') ||
-          document.body.appendChild(document.createElement('button'))
+        const play = document.body.appendChild(document.createElement('button'))
         play.textContent = 'play video'
         play.onclick = () => {
           log({ message: 'play video' })
@@ -95,13 +92,36 @@ function getMedia () {
 
 function gotMedia (stream) {
   log({ message: 'got hold of camera and mic' })
-  const video =
-    document.querySelector('video') ||
-    document.body.appendChild(document.createElement('video'))
-  video.srcObject = stream
+  const video = document.body.appendChild(document.createElement('video'))
+
+  const noSoundStream = stream.clone()
+  for (const audioTrack of noSoundStream.getAudioTracks()) {
+    audioTrack.enabled = false
+  }
+
+  video.srcObject = noSoundStream
   video.controls = true
   video.play().catch(error => log({ error, extra: 'failed to play own video' }))
-  const peer = new Peer({ initiator: true, stream, trickle: false })
+
+  const pauseResume = () => {
+    for (const audioTrack of stream.getAudioTracks()) {
+      audioTrack.enabled = !video.muted && video.volume > 0.1 && !video.paused
+    }
+    for (const videoTrack of stream.getVideoTracks()) {
+      videoTrack.enabled = !video.paused
+    }
+  }
+
+  video.onvolumechange = pauseResume
+  video.onpause = pauseResume
+  video.onplay = pauseResume
+
+  const peer = new Peer({
+    initiator: true,
+    stream,
+    trickle: false,
+    sdpTransform: sdp => sdp.replace(/sendrecv/g, 'sendonly')
+  })
   let signal
   peer.on('signal', data => {
     log({ message: 'got signal from initiator peer', extra: { ...data } })
@@ -134,17 +154,39 @@ function gotMedia (stream) {
           qrcode
             .toDataURL(`${window.location.href.replace('/new', '')}/${id}`)
             .then(src => {
-              const shareImage =
-                document.querySelector('img') ||
-                document.body.appendChild(document.createElement('img'))
+              const shareImage = document.body.appendChild(
+                document.createElement('img')
+              )
               shareImage.src = src
               shareImage.style = 'display: block;'
-              const share =
-                document.querySelector('a') ||
-                document.body.appendChild(document.createElement('a'))
+              const share = document.body.appendChild(
+                document.createElement('a')
+              )
               share.href = `/${id}`
               share.textContent = 'share link'
               share.style = 'display: block; margin-left: 15px;'
+              share.onclick = e => {
+                if (iframeCheck.checked) {
+                  e.preventDefault()
+                  const iframe = document.createElement('iframe')
+                  iframe.src = share.href
+                  iframe.height = '100%'
+                  iframe.width = '50%'
+                  iframe.style = 'position: fixed; top: 0px; right: 0px;'
+                  window.document.body.appendChild(iframe)
+                }
+              }
+
+              const shareInline = document.body.appendChild(
+                document.createElement('label')
+              )
+              shareInline.style = 'display: block; margin: 15px;'
+              shareInline.textContent = 'in iframe?'
+
+              const iframeCheck = document.createElement('input')
+              iframeCheck.type = 'checkbox'
+
+              shareInline.appendChild(iframeCheck)
             })
         }
       }
