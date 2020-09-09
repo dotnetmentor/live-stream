@@ -34,10 +34,18 @@ if (window.location.pathname === '/new') {
   }
 } else {
   const peer = new Peer({ initiator: false, trickle: false })
+  window.peer = peer
   const ws = new window.WebSocket(`${WS_URL}${window.location.pathname}`)
   peer.on('signal', data => {
     log({ message: 'ws signal', extra: { initator: false, data: { ...data } } })
     ws.send(JSON.stringify({ type: 'signal', initiator: false, data }))
+  })
+  const caption = document.body.appendChild(document.createElement('p'))
+  peer.on('data', data => {
+    const message = JSON.parse(data)
+    if (message.type === 'setCaption') {
+      caption.textContent = message.value
+    }
   })
   ws.onopen = () => {
     log({ message: 'connected to websocket' })
@@ -62,7 +70,7 @@ if (window.location.pathname === '/new') {
             .play()
             .catch(error => log({ error, extra: 'peer failed to play video' }))
           play.parentNode.removeChild(play)
-          video.style = 'display: block'
+          video.style = 'display: block; width: 100vw;'
         }
       })
     }
@@ -93,6 +101,7 @@ function getMedia () {
 function gotMedia (stream) {
   log({ message: 'got hold of camera and mic' })
   const video = document.body.appendChild(document.createElement('video'))
+  video.style = 'width: 40vw'
 
   const noSoundStream = stream.clone()
   for (const audioTrack of noSoundStream.getAudioTracks()) {
@@ -171,7 +180,7 @@ function gotMedia (stream) {
                   const iframe = document.createElement('iframe')
                   iframe.src = share.href
                   iframe.height = '100%'
-                  iframe.width = '50%'
+                  iframe.width = '40%'
                   iframe.style = 'position: fixed; top: 0px; right: 0px;'
                   window.document.body.appendChild(iframe)
                 }
@@ -187,6 +196,34 @@ function gotMedia (stream) {
               iframeCheck.type = 'checkbox'
 
               shareInline.appendChild(iframeCheck)
+
+              const caption = document.body.appendChild(
+                document.createElement('input')
+              )
+              caption.style = 'display: block; margin: 15px'
+              caption.placeholder = 'Caption for video'
+
+              const setCaption = () => {
+                if (setCaption.timer) {
+                  clearTimeout(setCaption.timer)
+                  setCaption.timer = null
+                }
+                setCaption.timer = setTimeout(() => {
+                  const send = () =>
+                    peer.send(
+                      JSON.stringify({
+                        type: 'setCaption',
+                        value: caption.value
+                      })
+                    )
+                  if (peer.connected) {
+                    send()
+                  } else {
+                    peer.on('connect', send)
+                  }
+                }, 500)
+              }
+              caption.oninput = setCaption
             })
         }
       }
