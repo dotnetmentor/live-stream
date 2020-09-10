@@ -7,8 +7,7 @@ video::-webkit-media-controls-current-time-display {
 }
 
 video::cue {
-  padding: 5px;
   font-size: larger;
-  background-color: white;
-  color: rgb(0, 127, 0);
+  background: white;
+  color: black;
 }

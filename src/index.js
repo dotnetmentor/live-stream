@@ -307,6 +307,18 @@ function gotMedia (stream) {
                   } else {
                     peer.on('connect', send)
                   }
+                  for (const textTrack of [...video.textTracks]) {
+                    textTrack.mode = 'hidden'
+                  }
+                  const textTrack = video.addTextTrack('captions')
+                  textTrack.addCue(
+                    new window.VTTCue(
+                      video.currentTime,
+                      2 * 60 * 1000 * 60,
+                      caption.value
+                    )
+                  )
+                  textTrack.mode = 'showing'
                 }, 500)
               }
               caption.oninput = setCaption
