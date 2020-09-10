@@ -34,6 +34,7 @@ if (window.location.pathname === '/new') {
   }
 } else {
   let captionText
+  let video
   let broadcast
   const peer = new Peer({ initiator: false, trickle: false, encoding: 'utf-8' })
   const ws = new window.WebSocket(`${WS_URL}${window.location.pathname}`)
@@ -41,12 +42,20 @@ if (window.location.pathname === '/new') {
     log({ message: 'ws signal', extra: { initator: false, data: { ...data } } })
     ws.send(JSON.stringify({ type: 'signal', initiator: false, data }))
   })
-  const caption = document.body.appendChild(document.createElement('p'))
   peer.on('data', data => {
     const message = JSON.parse(data)
     if (message.type === 'setCaption') {
       captionText = message.value
-      caption.textContent = captionText
+      if (video) {
+        for (const textTrack of [...video.textTracks]) {
+          textTrack.mode = 'hidden'
+        }
+        const textTrack = video.addTextTrack('captions')
+        textTrack.addCue(
+          new window.VTTCue(video.currentTime, 2 * 60 * 1000 * 60, captionText)
+        )
+        textTrack.mode = 'showing'
+      }
       if (broadcast) {
         const broadcastCaption = () =>
           broadcast.send(
@@ -71,7 +80,7 @@ if (window.location.pathname === '/new') {
       }
       peer.on('stream', stream => {
         log({ message: 'got video stream from peer' })
-        const video = document.body.appendChild(document.createElement('video'))
+        video = document.body.appendChild(document.createElement('video'))
         video.style = 'display: none'
         video.controls = true
         video.srcObject = stream
