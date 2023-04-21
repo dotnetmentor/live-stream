@@ -20,7 +20,7 @@
     "@commitlint/config-conventional": "10.0.0",
     "commitizen": "4.2.0",
     "cz-conventional-changelog": "3.2.0",
-    "husky": "4.2.5",
+    "husky": "4.3.8",
     "lint-staged": "10.2.8",
     "ngrok": "3.3.0",
     "parcel": "1.12.4",
