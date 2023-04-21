@@ -23,7 +23,7 @@
     "husky": "4.2.5",
     "lint-staged": "10.2.8",
     "ngrok": "3.3.0",
-    "parcel": "1.12.4",
+    "parcel": "2.8.3",
     "prettier": "2.0.5",
     "prettier-standard": "16.3.0",
     "qrcode": "1.4.4",
